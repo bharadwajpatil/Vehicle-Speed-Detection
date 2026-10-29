@@ -1,0 +1,28 @@
+# Clip 1 Calibration: New Zealand 2-Lane Highway (Angled Camera View)
+# Reference Video: speed.mp4 (1920x1080 @ 25 FPS)
+# Standard NZ Highway: 2 lanes @ 3.5m = 7.0m width; 4 lane-line cycles (3m mark + 7m gap) = 40.0m length.
+
+calibration:
+  reference_resolution: [1920, 1080]
+  source_points:
+    - [480, 380]   # Top-Left (TL): Far left lane boundary line
+    - [920, 380]   # Top-Right (TR): Far right lane boundary at chevron apex
+    - [1750, 850]  # Bottom-Right (BR): Near right lane boundary
+    - [420, 850]   # Bottom-Left (BL): Near left solid lane boundary line
+
+  target_dimensions:
+    width: 7.0     # Road width in metres (two 3.5m lanes)
+    length: 40.0   # Road segment length in metres (4 x 10m dashed cycles)
+
+speed_estimation:
+  speed_limit_kmh: 80.0        # Typical highway speed limit / enforcement threshold
+  max_plausible_kmh: 220.0     # Reject unphysical detector jump outliers
+  window_seconds: 0.75         # Temporal sliding window
+  min_displacement_meters: 0.8
+  ema_smoothing_factor: 0.7
+
+model:
+  weights: "yolov8n.pt"
+  tracker: "bytetrack.yaml"
+  confidence: 0.35
+  classes: [2, 3, 5, 7]        # car, motorcycle, bus, truck

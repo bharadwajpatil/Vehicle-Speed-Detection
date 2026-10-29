@@ -7,6 +7,8 @@
 
 A real-time computer vision pipeline for vehicle detection, multi-object tracking, and speed estimation using **YOLOv8**, **ByteTrack**, and **Top-Down Perspective Homography Calibration**.
 
+![Vehicle Speed Detection Demo](assets/demo.gif)
+
 ---
 
 ## Key Features
@@ -186,11 +188,13 @@ python validate.py --video demo_clip.mp4 --config config/calibration_config.yaml
 ```
 Vehicle-Speed-Detection/
 ├── assets/
+│   ├── demo.gif                # Real footage demonstration GIF
 │   └── synthetic_check.gif     # Synthetic geometry check demonstration
 ├── benchmark_results.json      # Output metrics from validate.py
 ├── calibrate.py                # Interactive 4-point camera calibration tool
 ├── config/
-│   └── calibration_config.yaml # Camera calibration & tracking settings
+│   ├── calibration_config.yaml # Synthetic benchmark calibration settings
+│   └── clip1_nz_highway.yaml   # Real highway calibration (speed.mp4)
 ├── LICENSE                     # MIT License
 ├── make_demo_gif.py            # Utility script to generate demo GIF
 ├── README.md                   # Project documentation

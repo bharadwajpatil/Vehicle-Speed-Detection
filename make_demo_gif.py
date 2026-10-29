@@ -26,6 +26,7 @@ def create_demo_gif(
     target_width: int = 720,
     target_fps: int = 12,
     speed_limit: float = 50.0,
+    colors: int = 32,
 ):
     out_file = Path(output_gif_path)
     out_file.parent.mkdir(parents=True, exist_ok=True)
@@ -65,23 +66,27 @@ def create_demo_gif(
         if not ret:
             break
 
-        # Process frames starting from start_frame
-        if frame_idx >= start_frame:
-            processed_frame, detections = detector.process_frame(frame, frame_idx, in_fps)
+        # Warm up detector and tracker before start_frame
+        if frame_idx < start_frame:
+            detector.process_frame(frame, frame_idx, in_fps)
+            frame_idx += 1
+            continue
 
-            # Check for speeding alerts
-            if any(d.get("speed") is not None and d["speed"] > speed_limit for d in detections):
-                speeding_frames_found += 1
+        processed_frame, detections = detector.process_frame(frame, frame_idx, in_fps)
 
-            if (frame_idx - start_frame) % step == 0:
-                h, w = processed_frame.shape[:2]
-                scale = target_width / w
-                target_h = int(h * scale)
-                resized = cv2.resize(processed_frame, (target_width, target_h), interpolation=cv2.INTER_AREA)
+        # Check for speeding alerts
+        if any(d.get("speed") is not None and d["speed"] > speed_limit for d in detections):
+            speeding_frames_found += 1
 
-                # Convert BGR to RGB for PIL Image
-                rgb_frame = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
-                frames.append(Image.fromarray(rgb_frame))
+        if (frame_idx - start_frame) % step == 0:
+            h, w = processed_frame.shape[:2]
+            scale = target_width / w
+            target_h = int(h * scale)
+            resized = cv2.resize(processed_frame, (target_width, target_h), interpolation=cv2.INTER_AREA)
+
+            # Convert BGR to RGB for PIL Image
+            rgb_frame = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
+            frames.append(Image.fromarray(rgb_frame))
 
         frame_idx += 1
 
@@ -92,12 +97,17 @@ def create_demo_gif(
         return False
 
     print(f"[INFO] Captured {len(frames)} frames (with {speeding_frames_found} frames showing speeding vehicles).")
-    print(f"[INFO] Quantizing and saving to {output_gif_path}...")
+    print(f"[INFO] Quantizing ({colors} colors) and saving to {output_gif_path}...")
 
-    frames[0].save(
+    quantized_frames = [
+        f.quantize(colors=colors, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
+        for f in frames
+    ]
+
+    quantized_frames[0].save(
         output_gif_path,
         save_all=True,
-        append_images=frames[1:],
+        append_images=quantized_frames[1:],
         duration=int(1000 / target_fps),
         loop=0,
         optimize=True,
@@ -114,9 +124,10 @@ def main():
     parser.add_argument("--config", default="config/calibration_config.yaml", help="Path to calibration YAML file.")
     parser.add_argument("--output", default="assets/demo.gif", help="Output GIF path (default: assets/demo.gif).")
     parser.add_argument("--start", type=float, default=0.0, help="Start time in seconds (default: 0.0).")
-    parser.add_argument("--duration", type=float, default=12.0, help="Duration in seconds (default: 12.0).")
+    parser.add_argument("--duration", type=float, default=10.0, help="Duration in seconds (default: 10.0).")
     parser.add_argument("--width", type=int, default=720, help="Output GIF width in pixels (default: 720).")
     parser.add_argument("--fps", type=int, default=12, help="Output GIF frame rate (default: 12).")
+    parser.add_argument("--colors", type=int, default=32, help="Palette colors for compression (default: 32).")
     parser.add_argument("--limit", type=float, default=50.0, help="Speed limit in km/h (default: 50.0).")
 
     args = parser.parse_args()
@@ -130,6 +141,7 @@ def main():
         target_width=args.width,
         target_fps=args.fps,
         speed_limit=args.limit,
+        colors=args.colors,
     )
 
 
