@@ -30,7 +30,7 @@ THRESHOLD_PCT = 8.0
 
 def run_benchmark(
     video_path: str = "demo_clip.mp4",
-    config_path: str = "calibration_config.yaml",
+    config_path: str = "config/calibration_config.yaml",
     detector_type: str = "colour",
 ) -> Dict:
     """
@@ -50,9 +50,13 @@ def run_benchmark(
         generate_synthetic_demo_video(video_path, num_frames=180, fps=30)
 
     # 2. Load configuration parameters from YAML
+    cfg_p = Path(config_path)
+    if not cfg_p.exists() and (Path("config") / config_path).exists():
+        cfg_p = Path("config") / config_path
+
     cfg_data = {}
-    if Path(config_path).exists():
-        with open(config_path, "r", encoding="utf-8") as f:
+    if cfg_p.exists():
+        with open(cfg_p, "r", encoding="utf-8") as f:
             cfg_data = yaml.safe_load(f) or {}
 
     speed_cfg = cfg_data.get("speed_estimation", {})
@@ -246,7 +250,7 @@ def run_benchmark(
 def main():
     parser = argparse.ArgumentParser(description="Validate speed detection pipeline against known ground truths.")
     parser.add_argument("--video", default="demo_clip.mp4", help="Path to video clip with known vehicle speeds.")
-    parser.add_argument("--config", default="calibration_config.yaml", help="Path to calibration YAML.")
+    parser.add_argument("--config", default="config/calibration_config.yaml", help="Path to calibration YAML.")
     parser.add_argument(
         "--detector",
         choices=["colour", "yolo"],

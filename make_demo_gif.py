@@ -35,7 +35,7 @@ def create_demo_gif(
     detector = VehicleSpeedDetector(
         weights="yolov8n.pt",
         speed_limit=50.0,
-        config_path="calibration_config.yaml",
+        config_path="config/calibration_config.yaml",
         tracker="bytetrack.yaml",
         conf=0.3,
         window_seconds=0.75,

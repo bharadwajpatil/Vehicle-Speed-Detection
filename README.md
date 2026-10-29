@@ -94,7 +94,7 @@ python speed.py --generate-demo --output demo_annotated.mp4
 | `--video` | string | `None` | Path to video file, webcam index (`0`), or fallback clip |
 | `--limit` | float | `50.0` | Speed limit threshold in km/h |
 | `--output` | string | `None` | Path to save annotated output video (`.mp4`) |
-| `--config` | string | `calibration_config.yaml` | Path to perspective calibration YAML |
+| `--config` | string | `config/calibration_config.yaml` | Path to perspective calibration YAML |
 | `--weights` | string | `yolov8n.pt` | YOLOv8 model weights (`yolov8n.pt`, `yolov8s.pt`, etc.) |
 | `--tracker` | string | `bytetrack.yaml` | Tracker configuration file |
 | `--conf` | float | `0.35` | Confidence threshold for detection |
@@ -121,7 +121,7 @@ Camera Frame (Trapezoid ROI)            Bird's Eye Metric Plane (Meters)
                                                      (e.g. 8.0m)
 ```
 
-Edit [`calibration_config.yaml`](calibration_config.yaml) with your camera's landmarks:
+Edit [`config/calibration_config.yaml`](config/calibration_config.yaml) with your camera's landmarks:
 ```yaml
 calibration:
   reference_resolution: [1280, 720]
@@ -145,7 +145,7 @@ To verify that the perspective homography transformation and sliding-window velo
 > **Important Note**: This benchmark is a **synthetic geometric check** using colour-mask detection to isolate and verify the planar homography matrix and temporal speed calculations. It is **not** a validation of YOLOv8 detection accuracy on real-world footage.
 
 ```bash
-python validate.py --video demo_clip.mp4 --config calibration_config.yaml
+python validate.py --video demo_clip.mp4 --config config/calibration_config.yaml
 ```
 
 ### Synthetic Verification Results
@@ -166,7 +166,8 @@ Vehicle-Speed-Detection/
 ├── assets/
 │   └── demo.gif                # Demonstration GIF
 ├── benchmark_results.json      # Output metrics from validate.py
-├── calibration_config.yaml     # Camera calibration & tracking settings
+├── config/
+│   └── calibration_config.yaml # Camera calibration & tracking settings
 ├── LICENSE                     # MIT License
 ├── make_demo_gif.py            # Utility script to generate demo GIF
 ├── README.md                   # Project documentation

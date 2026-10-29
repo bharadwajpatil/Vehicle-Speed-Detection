@@ -63,6 +63,11 @@ class PerspectiveTransformer:
     def from_config(cls, config_path: str, frame_width: int, frame_height: int) -> "PerspectiveTransformer":
         """Load calibration from YAML config with auto-scaling to current frame resolution."""
         path = Path(config_path)
+        if not path.exists():
+            alt_path = Path("config") / config_path
+            if alt_path.exists():
+                path = alt_path
+
         if path.exists():
             with open(path, "r", encoding="utf-8") as f:
                 data = yaml.safe_load(f)
@@ -155,6 +160,7 @@ class SpeedEstimator:
         self.tracks_history: Dict[int, deque] = defaultdict(lambda: deque(maxlen=60))
         self.speeds: Dict[int, float] = {}
         self.speeding_history: Dict[int, float] = {}
+        self.stale_counts: Dict[int, int] = defaultdict(int)
 
     def update(
         self, track_id: int, current_time: float, meter_x: float, meter_y: float, px: int, py: int
@@ -220,10 +226,14 @@ class SpeedEstimator:
         """Purge tracking records for objects no longer visible."""
         current_active = set(active_track_ids)
         for tid in list(self.tracks_history.keys()):
-            if tid not in current_active and len(self.tracks_history[tid]) > 0:
-                if tid in self.speeds and len(self.tracks_history[tid]) > max_stale_frames:
-                    del self.tracks_history[tid]
-                    del self.speeds[tid]
+            if tid not in current_active:
+                self.stale_counts[tid] += 1
+                if self.stale_counts[tid] > max_stale_frames:
+                    self.tracks_history.pop(tid, None)
+                    self.speeds.pop(tid, None)
+                    self.stale_counts.pop(tid, None)
+            else:
+                self.stale_counts[tid] = 0
 
 
 class VehicleSpeedDetector:
@@ -236,7 +246,7 @@ class VehicleSpeedDetector:
         self,
         weights: str = "yolov8n.pt",
         speed_limit: float = 50.0,
-        config_path: Optional[str] = "calibration_config.yaml",
+        config_path: Optional[str] = "config/calibration_config.yaml",
         tracker: str = "bytetrack.yaml",
         conf: float = 0.35,
         iou: float = 0.7,
@@ -269,7 +279,7 @@ class VehicleSpeedDetector:
 
     def _initialize_calibration(self, frame_width: int, frame_height: int):
         """Initialize perspective transformer once frame dimensions are known."""
-        cfg = self.config_path or "calibration_config.yaml"
+        cfg = self.config_path or "config/calibration_config.yaml"
         self.transformer = PerspectiveTransformer.from_config(cfg, frame_width, frame_height)
         print(f"[INFO] Perspective calibration active (Target: {self.transformer.target_width}m x {self.transformer.target_length}m)")
 
@@ -575,7 +585,7 @@ def main():
     parser.add_argument("--video", type=str, default=None, help="Path to input video file or webcam index (0).")
     parser.add_argument("--limit", type=float, default=50.0, help="Speed limit in km/h (default: 50.0).")
     parser.add_argument("--output", type=str, default=None, help="Path to save annotated output video (MP4).")
-    parser.add_argument("--config", type=str, default="calibration_config.yaml", help="Path to calibration YAML file.")
+    parser.add_argument("--config", type=str, default="config/calibration_config.yaml", help="Path to calibration YAML file.")
     parser.add_argument("--weights", type=str, default="yolov8n.pt", help="YOLOv8 model weights (default: yolov8n.pt).")
     parser.add_argument("--tracker", type=str, default="bytetrack.yaml", help="Tracker config (default: bytetrack.yaml).")
     parser.add_argument("--conf", type=float, default=0.35, help="Confidence threshold for detection.")
