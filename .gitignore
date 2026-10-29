@@ -1,7 +1,31 @@
+# Python & Environment
 __pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.env
+
+# IDE & Editors
 .vscode/
+.idea/
+
+# Model Weights & Artifacts
+*.pt
+*.onnx
+*.engine
+weights/
+
+# Video & Media Files (keep git repo lightweight)
 *.mp4
 *.avi
 *.mkv
 *.mov
-.env
+output/
+outputs/
+*.log
+
+# ByteTrack temporary cache
+yolov8*.pt
+bytetrack.yaml

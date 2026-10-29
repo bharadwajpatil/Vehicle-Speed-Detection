@@ -1,0 +1,39 @@
+# Vehicle Speed Detection - Perspective Calibration Configuration
+#
+# Calibration Guide:
+# 1. Identify 4 points on the road surface forming a known rectangular region in the real world
+#    (e.g., lane markings, distance between light poles or road lines).
+# 2. Source points order: [Top-Left, Top-Right, Bottom-Right, Bottom-Left] in pixel coordinates (x, y).
+# 3. Specify real-world dimensions (in meters) corresponding to the calibrated rectangle.
+# 4. reference_resolution: Resolution at which source_points were measured. Points will automatically
+#    scale proportionally if the input video has a different resolution.
+
+calibration:
+  reference_resolution: [1280, 720]
+
+  # Pixel coordinates in the camera frame [x, y] at reference_resolution
+  source_points:
+    - [448, 324]   # Top-Left (far left lane marking)
+    - [832, 324]   # Top-Right (far right lane marking)
+    - [1152, 684]  # Bottom-Right (near right lane marking)
+    - [128, 684]   # Bottom-Left (near left lane marking)
+
+  # Real-world metric dimensions corresponding to the quadrilateral above (in meters)
+  target_dimensions:
+    width: 8.0     # Road width in meters (2 lanes @ 4m each)
+    length: 40.0   # Length of road segment in meters
+
+# Tracking & Speed Estimation Settings
+speed_estimation:
+  speed_limit_kmh: 50.0        # Threshold for overspeed warning
+  max_plausible_kmh: 220.0     # Filter out unphysical tracking jumps
+  window_seconds: 0.75         # Temporal estimation window (seconds) to eliminate frame jitter
+  min_displacement_meters: 0.8 # Minimum movement required before reporting speed
+  ema_smoothing_factor: 0.7    # Exponential moving average factor for smooth display (0 to 1)
+
+# Detection & Tracking Model Settings
+model:
+  weights: "yolov8n.pt"
+  tracker: "bytetrack.yaml"
+  confidence: 0.35
+  classes: [2, 3, 5, 7]        # COCO classes: 2: car, 3: motorcycle, 5: bus, 7: truck
