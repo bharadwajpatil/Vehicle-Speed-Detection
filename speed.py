@@ -175,7 +175,14 @@ class SpeedEstimator:
             else:
                 break
 
-        if prev_point is None:
+        # Adaptive warm-up: if window_seconds has not passed yet, use earliest point if dt >= 0.25s
+        if prev_point is None and len(history) > 1:
+            oldest = history[0]
+            if current_time - oldest[0] >= 0.25:
+                prev_point = oldest
+            else:
+                return self.speeds.get(track_id)
+        elif prev_point is None:
             return self.speeds.get(track_id)
 
         t_prev, x_prev, y_prev, _, _ = prev_point
