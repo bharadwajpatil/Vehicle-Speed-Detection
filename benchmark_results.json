@@ -1,19 +1,23 @@
 {
   "Car A (Compliant)": {
     "ground_truth_kmh": 42.0,
-    "measured_kmh": 43.02,
-    "absolute_error_kmh": 1.02,
-    "percentage_error": 2.43
+    "measured_kmh": 43.0,
+    "absolute_error_kmh": 1.0,
+    "percentage_error": 2.37
   },
   "Car B (Speeding)": {
     "ground_truth_kmh": 72.0,
     "measured_kmh": 73.13,
     "absolute_error_kmh": 1.13,
-    "percentage_error": 1.57
+    "percentage_error": 1.56
   },
   "summary": {
-    "MAPE": 2.0,
-    "status": "PASSED (Accuracy within \u00b18% target)",
+    "test_type": "synthetic clip, colour-mask detector (geometry/speed-math check only)",
+    "detector": "colour",
+    "MAPE": 1.97,
+    "threshold_pct": 8.0,
+    "status": "PASSED",
+    "passed": true,
     "frames_evaluated": 180
   }
 }
