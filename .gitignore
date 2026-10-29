@@ -29,3 +29,9 @@ outputs/
 # ByteTrack temporary cache
 yolov8*.pt
 bytetrack.yaml
+
+# Personal Notes & Run Commands (keep requirements.txt tracked)
+upgradation.txt
+run commad vehiacal project.txt
+*.txt
+!requirements.txt
