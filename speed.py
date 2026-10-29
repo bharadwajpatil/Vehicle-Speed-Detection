@@ -13,6 +13,7 @@ Features:
 """
 
 import argparse
+import csv
 import sys
 import time
 from collections import defaultdict, deque
@@ -592,6 +593,7 @@ def main():
     parser.add_argument("--iou", type=float, default=0.7, help="IOU threshold for tracking.")
     parser.add_argument("--window", type=float, default=0.75, help="Temporal speed calculation window in seconds.")
     parser.add_argument("--max-speed", type=float, default=220.0, help="Maximum plausible speed for outlier rejection.")
+    parser.add_argument("--save-csv", type=str, default=None, help="Path to save speed measurements CSV (track_id, class, time_s, speed_kmh, speeding).")
     parser.add_argument("--view", dest="view", action="store_true", default=True, help="Display video window.")
     parser.add_argument("--no-view", dest="view", action="store_false", help="Run headlessly without GUI display.")
     parser.add_argument("--generate-demo", action="store_true", help="Generate a synthetic test clip with known speeds.")
@@ -663,6 +665,7 @@ def main():
 
     frame_idx = 0
     start_wall_time = time.time()
+    csv_rows = []
 
     try:
         while cap.isOpened():
@@ -671,6 +674,18 @@ def main():
                 break
 
             processed_frame, detections = detector.process_frame(frame, frame_idx, fps)
+
+            if args.save_csv:
+                video_time = frame_idx / max(fps, 1.0)
+                for det in detections:
+                    if det.get("speed") is not None:
+                        csv_rows.append({
+                            "track_id": det["id"],
+                            "class": det["cls"],
+                            "time_s": round(video_time, 3),
+                            "speed_kmh": round(det["speed"], 2),
+                            "speeding": bool(det["speed"] > args.limit),
+                        })
 
             if writer is not None:
                 writer.write(processed_frame)
@@ -695,6 +710,18 @@ def main():
         if args.view:
             cv2.destroyAllWindows()
 
+        if args.save_csv:
+            csv_path = Path(args.save_csv)
+            csv_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(csv_path, "w", newline="", encoding="utf-8") as f:
+                writer_csv = csv.DictWriter(
+                    f, fieldnames=["track_id", "class", "time_s", "speed_kmh", "speeding"]
+                )
+                writer_csv.writeheader()
+                if csv_rows:
+                    writer_csv.writerows(csv_rows)
+            print(f"[INFO] Saved {len(csv_rows)} speed measurements to CSV: {args.save_csv}")
+
     total_time = time.time() - start_wall_time
     avg_fps = frame_idx / max(total_time, 0.001)
     print("\n" + "=" * 50)
@@ -710,6 +737,8 @@ def main():
             print(f"  - Vehicle #{tid}: Peak Speed = {max_spd:.1f} km/h (Limit: {args.limit} km/h)")
     if args.output:
         print(f"Output Video Saved to  : {args.output}")
+    if args.save_csv:
+        print(f"Speed Records CSV Saved: {args.save_csv}")
     print("=" * 50)
 
 
