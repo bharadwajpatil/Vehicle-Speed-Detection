@@ -25,6 +25,7 @@ weights/
 output/
 outputs/
 *.log
+*.csv
 
 # ByteTrack temporary cache
 yolov8*.pt
