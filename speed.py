@@ -598,6 +598,18 @@ def main():
         video_src = int(args.video)
     else:
         video_src = args.video
+        if not Path(video_src).exists():
+            stem = Path(video_src).stem.strip()
+            matches = [
+                str(p)
+                for p in Path(".").iterdir()
+                if p.is_file()
+                and p.suffix.lower() in [".mp4", ".avi", ".mov", ".mkv"]
+                and (p.stem.strip() == stem or stem in p.stem)
+            ]
+            if matches:
+                print(f"[INFO] '{video_src}' not found directly. Auto-resolved to matching file: '{matches[0]}'")
+                video_src = matches[0]
 
     cap = cv2.VideoCapture(video_src)
     if not cap.isOpened():
