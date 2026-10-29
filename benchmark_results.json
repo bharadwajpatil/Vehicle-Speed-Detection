@@ -1,0 +1,19 @@
+{
+  "Car A (Compliant)": {
+    "ground_truth_kmh": 42.0,
+    "measured_kmh": 43.02,
+    "absolute_error_kmh": 1.02,
+    "percentage_error": 2.43
+  },
+  "Car B (Speeding)": {
+    "ground_truth_kmh": 72.0,
+    "measured_kmh": 73.13,
+    "absolute_error_kmh": 1.13,
+    "percentage_error": 1.57
+  },
+  "summary": {
+    "MAPE": 2.0,
+    "status": "PASSED (Accuracy within \u00b18% target)",
+    "frames_evaluated": 180
+  }
+}
