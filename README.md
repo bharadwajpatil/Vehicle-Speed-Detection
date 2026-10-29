@@ -1,6 +1,6 @@
 # Vehicle Speed Detection using YOLOv8 & ByteTrack
 
-[![Python](https://img.shields.io/badge/Python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.14-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.14-blue.svg)](https://www.python.org/)
 [![YOLOv8](https://img.shields.io/badge/YOLO-v8%20(Ultralytics)-brightgreen.svg)](https://github.com/ultralytics/ultralytics)
 [![Tracker](https://img.shields.io/badge/Tracker-ByteTrack-orange.svg)](https://github.com/ifzhang/ByteTrack)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -17,7 +17,7 @@ An accurate, real-time computer vision system for vehicle detection, multi-objec
 - **ByteTrack Multi-Object Tracking**: Stable, persistent vehicle IDs across frames, even through partial occlusions.
 - **Top-Down Perspective Homography (`cv2.getPerspectiveTransform`)**: Projects camera perspective coordinates onto a real-world metric ground plane (meters), eliminating perspective distortion and distance errors.
 - **Video-Time Calculation (`frame_index / fps`)**: Deterministic calculations immune to CPU throttling, frame drops, or hardware lag (no wall-clock `time.time()` bias).
-- **Temporal Sliding Window & EMA Smoothing**: Evaluates displacement over a 0.5–1.0s window with exponential moving average to filter out bounding-box jitter.
+- **Temporal Sliding Window & EMA Smoothing**: Evaluates displacement over a 0.25–0.75s window with exponential moving average to filter out bounding-box jitter.
 - **Production CLI (`argparse`)**: Supports local videos, webcams, headless cloud servers/Colab, custom config files, and video exporting.
 - **Overspeed Violation Alerts**: Visual and logged warnings when vehicles exceed the speed limit.
 
@@ -91,7 +91,7 @@ python speed.py --generate-demo --output demo_annotated.mp4
 ### Full CLI Options
 | Argument | Type | Default | Description |
 |---|---|---|---|
-| `--video` | string | `demo_clip.mp4` | Path to video file, webcam index (`0`), or `demo` |
+| `--video` | string | `None` | Path to video file, webcam index (`0`), or fallback clip |
 | `--limit` | float | `50.0` | Speed limit threshold in km/h |
 | `--output` | string | `None` | Path to save annotated output video (`.mp4`) |
 | `--config` | string | `calibration_config.yaml` | Path to perspective calibration YAML |
@@ -100,6 +100,7 @@ python speed.py --generate-demo --output demo_annotated.mp4
 | `--conf` | float | `0.35` | Confidence threshold for detection |
 | `--iou` | float | `0.7` | IOU threshold for ByteTrack |
 | `--window` | float | `0.75` | Temporal speed window in seconds |
+| `--max-speed` | float | `220.0` | Maximum plausible speed filter for tracking jump outliers |
 | `--no-view` | flag | `False` | Run headlessly without opening a GUI window |
 | `--generate-demo` | flag | `False` | Generate synthetic test clip with known speeds |
 
@@ -113,45 +114,48 @@ Camera perspective causes distant vehicles to appear smaller and move fewer pixe
 Camera Frame (Trapezoid ROI)            Bird's Eye Metric Plane (Meters)
        TL -------- TR                               TL -------- TR
        /            \        Homography (M)          |          |
-      /              \      ===============>         |          | Length (e.g. 30m)
+      /              \      ===============>         |          | Length (e.g. 40m)
      /                \                              |          |
    BL ---------------- BR                           BL -------- BR
                                                      <--Width-->
-                                                     (e.g. 7.0m)
+                                                     (e.g. 8.0m)
 ```
 
 Edit [`calibration_config.yaml`](calibration_config.yaml) with your camera's landmarks:
 ```yaml
 calibration:
+  reference_resolution: [1280, 720]
   source_points:
-    - [460, 320]   # Top-Left (x, y)
-    - [820, 320]   # Top-Right
-    - [1150, 680]  # Bottom-Right
-    - [150, 680]   # Bottom-Left
+    - [448, 324]   # Top-Left (x, y)
+    - [832, 324]   # Top-Right
+    - [1152, 684]  # Bottom-Right
+    - [128, 684]   # Bottom-Left
 
   target_dimensions:
-    width: 7.0     # Road width in meters
-    length: 30.0   # Segment length in meters
+    width: 8.0     # Road width in meters
+    length: 40.0   # Segment length in meters
 ```
 
 ---
 
-## Validation & Accuracy Benchmark
+## Synthetic Geometry & Speed Math Verification
 
-The pipeline was validated against calibrated ground-truth clips with fixed vehicle speeds:
+To verify that the perspective homography transformation and sliding-window velocity mathematics function correctly, [`validate.py`](validate.py) evaluates the math against a synthetic simulation where vehicle trajectory and ground-truth speeds are known:
+
+> **Important Note**: This benchmark is a **synthetic geometric check** using colour-mask detection to isolate and verify the planar homography matrix and temporal speed calculations. It is **not** a validation of YOLOv8 detection accuracy on real-world footage.
 
 ```bash
 python validate.py --video demo_clip.mp4 --config calibration_config.yaml
 ```
 
-### Benchmark Results
+### Synthetic Verification Results
 | Vehicle | Ground Truth | Measured Speed | Error Margin | Status |
 |:---|:---:|:---:|:---:|:---:|
-| **Car A (Compliant)** | 42.0 km/h | 41.6 km/h | **-0.95%** | PASSED |
-| **Car B (Speeding)**  | 72.0 km/h | 73.1 km/h | **+1.53%** | PASSED |
-| **Overall (MAPE)**    | — | — | **±1.24%** | **Target: < ±8%** |
+| **Car A (Compliant)** | 42.0 km/h | 43.0 km/h | **+2.37%** | PASSED |
+| **Car B (Speeding)**  | 72.0 km/h | 73.1 km/h | **+1.56%** | PASSED |
+| **Overall (MAPE)**    | — | — | **±1.97%** | **Target: < ±8.0%** |
 
-*(Field accuracy on roadside surveillance setups typically yields within **±5% to ±8%** under stationary camera mounts).*
+*(Results are generated by `validate.py` and recorded in [`benchmark_results.json`](benchmark_results.json)).*
 
 ---
 
@@ -160,16 +164,15 @@ python validate.py --video demo_clip.mp4 --config calibration_config.yaml
 ```
 Vehicle-Speed-Detection/
 ├── assets/
-│   └── demo.gif                # Demonstration GIF for README
-├── config/
-│   └── calibration_config.yaml # Road homography & tracking parameters
-├── speed.py                    # Main detection & speed tracking CLI
-├── validate.py                 # Ground-truth accuracy benchmark script
-├── make_demo_gif.py            # Utility script to generate demo GIF
-├── requirements.txt            # Python dependencies
-├── calibration_config.yaml     # Root configuration file
+│   └── demo.gif                # Demonstration GIF
+├── benchmark_results.json      # Output metrics from validate.py
+├── calibration_config.yaml     # Camera calibration & tracking settings
 ├── LICENSE                     # MIT License
-└── README.md                   # Project documentation
+├── make_demo_gif.py            # Utility script to generate demo GIF
+├── README.md                   # Project documentation
+├── requirements.txt            # Python dependencies
+├── speed.py                    # Main detection, tracking, and speed CLI
+└── validate.py                 # Synthetic geometry verification script
 ```
 
 ---
@@ -179,6 +182,7 @@ Vehicle-Speed-Detection/
 1. **Stationary Cameras Only**: The homography matrix assumes a fixed camera position and angle. Pan-tilt-zoom or vibrating cameras require optical flow stabilization.
 2. **Severe Occlusions**: When a trailing vehicle's wheels (ground contact point) are hidden by a tall vehicle ahead, speed readings pause until the ground point re-emerges.
 3. **Low Visibility / Adverse Weather**: Heavy rain, fog, or night glare may lower YOLOv8 detection confidence; fine-tuning on a nighttime road dataset is recommended for dark conditions.
+4. **Real-World Ground Truth**: Accuracy on real footage has not yet been validated against physical ground-truth speeds (e.g. calibrated radar or in-vehicle GPS telemetry).
 
 ---
 
