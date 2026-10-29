@@ -72,7 +72,7 @@ def run_benchmark(
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    transformer = PerspectiveTransformer.from_config(config_path, width, height)
+    transformer = PerspectiveTransformer.from_config(str(cfg_p), width, height)
     estimator = SpeedEstimator(
         speed_limit_kmh=speed_limit,
         max_plausible_kmh=max_speed,
@@ -132,7 +132,7 @@ def run_benchmark(
         detector = VehicleSpeedDetector(
             weights=weights,
             speed_limit=speed_limit,
-            config_path=config_path,
+            config_path=str(cfg_p),
             conf=conf,
             classes=classes,
             window_seconds=window_seconds,
